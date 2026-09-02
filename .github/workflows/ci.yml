@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+
+      - name: Assert the library has no third-party dependencies
+        run: |
+          python - <<'PY'
+          import importlib.metadata as md
+          reqs = md.requires("groundcheck") or []
+          runtime = [r for r in reqs if "extra ==" not in r]
+          assert not runtime, f"groundcheck must stay stdlib-only, found: {runtime}"
+          print("stdlib-only: OK")
+          PY
+
+      - name: Tests (pinned totals)
+        run: |
+          python -m pytest tests/ -q --junitxml=results.xml
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          s = ET.parse("results.xml").getroot()
+          s = s.find("testsuite") if s.tag == "testsuites" else s
+          got = {k: int(s.get(k, 0)) for k in ("tests", "failures", "errors", "skipped")}
+          print(got)
+          # Pinned so a test that silently stops running fails the build:
+          # a skip nobody counts is indistinguishable from a deleted test.
+          assert got == {"tests": 41, "failures": 0, "errors": 0, "skipped": 0}, got
+          print("pinned totals match")
+          PY
+
+      - name: The shipped example must still detect its planted defects
+        run: |
+          set +e
+          python -m groundcheck.cli examples/input.json --sources examples/docs > report.json
+          code=$?
+          set -e
+          test "$code" = "1" || { echo "expected exit 1 (planted defects detected), got $code"; exit 1; }
+          python - <<'PY'
+          import json
+          r = json.load(open("report.json"))
+          c = r["counts"]
+          assert c == {"supported": 2, "span-mismatch": 2, "unresolvable": 1,
+                       "uncited": 1, "total": 6}, c
+          print("example verdicts unchanged:", c)
+          PY
+
+      - name: Exit-code contract (0 clean / 1 unresolvable / 2 bad input)
+        run: |
+          set +e
+          printf 'not json at all' > bad.json
+          python -m groundcheck.cli bad.json --sources examples/docs >/dev/null 2>&1
+          test $? = 2 || { echo "malformed input must exit 2"; exit 1; }
+          python -m groundcheck.cli examples/input.json --sources ./no_such_dir >/dev/null 2>&1
+          test $? = 2 || { echo "missing sources dir must exit 2"; exit 1; }
+          set -e
+          # The other half, and the one that matters most: a clean input must
+          # exit 0. Without this, a checker hardwired to always fail would
+          # satisfy every other assertion in this workflow.
+          python - <<'PY'
+          import json, pathlib
+          doc = pathlib.Path("examples/docs/quarterly-brief.txt").read_text(encoding="utf-8")
+          # A raw slice, not a word search: the citation is by construction
+          # exactly the text at its own span, so this must verify clean.
+          json.dump({"answer": "clean", "citations": [
+              {"claim_id": "c1", "text": doc[10:60], "doc_id": "quarterly-brief",
+               "span": [10, 60]}]}, open("clean.json", "w"))
+          PY
+          python -m groundcheck.cli clean.json --sources examples/docs >/dev/null
+          test $? = 0 || { echo "clean input must exit 0"; exit 1; }
+          echo "exit-code contract holds (0 / 1 / 2 all asserted)"

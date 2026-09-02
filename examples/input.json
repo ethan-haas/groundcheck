@@ -1,0 +1,40 @@
+{
+  "answer": "Northwind Traders grew revenue 12% in fiscal 2023, driven by its logistics division. Headcount rose from 480 to 512 employees. The board approved $2,000,000 for warehouse automation. Priya Chandra was named Chief Financial Officer. The company plans to expand into three new international markets next year.",
+  "citations": [
+    {
+      "claim_id": "revenue-growth",
+      "text": "Northwind Traders grew revenue 12% in fiscal 2023.",
+      "doc_id": "quarterly-brief",
+      "quote": "full-year revenue growth\nof 12%"
+    },
+    {
+      "claim_id": "headcount",
+      "text": "Headcount rose from 480 to 512 employees.",
+      "doc_id": "quarterly-brief",
+      "span": [141, 181]
+    },
+    {
+      "claim_id": "warehouse-budget-wrong-number",
+      "text": "The board approved $2,000,000 for warehouse automation.",
+      "doc_id": "quarterly-brief",
+      "quote": "board approved a $1,250,000 investment\nin warehouse automation"
+    },
+    {
+      "claim_id": "coo-reworded-quote",
+      "text": "Priya Chandra was named Chief Financial Officer.",
+      "doc_id": "press-release",
+      "span": [53, 95],
+      "quote": "Priya Chandra as\nChief Financial Officer"
+    },
+    {
+      "claim_id": "expansion-plans-fabricated-doc",
+      "text": "The company plans to expand into three new international markets next year.",
+      "doc_id": "investor-call-transcript",
+      "quote": "three new international markets"
+    },
+    {
+      "claim_id": "churn-uncited",
+      "text": "Customer churn fell to 3.2% in Q4, the lowest since 2019."
+    }
+  ]
+}

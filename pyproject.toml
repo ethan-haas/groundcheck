@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groundcheck"
+version = "0.1.0"
+description = "Deterministic citation-support checker: is each claim in an LLM answer actually backed by its cited source span?"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Ethan Haas", email = "ethanzhaas@gmail.com" }]
+dependencies = []
+
+[project.scripts]
+groundcheck = "groundcheck.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["groundcheck*"]
